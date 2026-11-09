@@ -58,6 +58,9 @@ L'application Streamlit comprend six espaces :
 5. Backtesting : simulation et évaluation des stratégies.
 6. Paper Trading : suivi des transactions fictives.
 
+   <img width="1648" height="1632" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/d2a1dc4a-f7ff-4a4d-82e7-e845618b7243" />
+
+
 ## 7. Technologies utilisées
 
 - Python 3.11+
