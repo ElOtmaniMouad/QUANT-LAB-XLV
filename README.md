@@ -47,6 +47,22 @@ Le projet utilise plusieurs familles de modèles :
 
 Les modèles seront comparés selon leurs performances prédictives et leur utilité pour les décisions de trading.
 
+
+flowchart TD
+    A["QUANT LAB - Streamlit"] --> B["01 - Market Data"]
+    B --> C["02 - Model Laboratory"]
+    C --> D["03 - Risk Management"]
+    C --> E["04 - Trading Strategy"]
+    D --> E
+    E --> F["05 - Backtesting"]
+    F --> G["06 - Paper Trading"]
+
+    B --> H["Données XLV et SPY"]
+    C --> I["ARIMA / SARIMAX / GARCH"]
+    C --> J["Ridge / Random Forest / MLP"]
+    G --> K["Journal des transactions"]
+    F --> L["Performance et Drawdown"]
+
 ## 6. Fonctionnalités de l'application
 
 L'application Streamlit comprend six espaces :
