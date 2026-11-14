@@ -1,0 +1,27 @@
+{
+  "project": "QUANT LAB - B05 XLV",
+  "source": "Yahoo Finance via yfinance",
+  "tickers": [
+    "XLV",
+    "SPY"
+  ],
+  "start_requested": "2018-01-01",
+  "end_requested_exclusive": "2026-11-15",
+  "frequency": "daily",
+  "timezone_index": "date de séance, sans heure",
+  "price_adjustment": "auto_adjust=False; colonnes Close et Adj Close conservées",
+  "downloaded_at_utc": "2026-11-14T16:46:28.137190+00:00",
+  "snapshot_date_local": "2026-11-14",
+  "rows_xlv": 2230,
+  "rows_spy": 2230,
+  "rows_common_dates": 2230,
+  "first_common_date": "2018-01-02",
+  "last_common_date": "2026-11-13",
+  "files": [
+    "data/raw/xlv.csv",
+    "data/raw/spy.csv",
+    "data/processed/xlv_spy_daily.csv",
+    "data/snapshots/2026-11-14/xlv_spy_daily.csv"
+  ],
+  "limitations": "yfinance/Yahoo Finance ne garantit pas un flux professionnel instantané; les dernières données disponibles peuvent être différées."
+}

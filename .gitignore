@@ -1,0 +1,6 @@
+__pycache__/
+.venv/
+venv/
+.env
+*.pyc
+# Garder les snapshots et rapports D02 si demandés par l'enseignant.

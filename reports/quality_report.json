@@ -1,0 +1,26 @@
+{
+  "input_file": "data\\processed\\xlv_spy_daily.csv",
+  "rows": 2230,
+  "first_date": "2018-01-02",
+  "last_date": "2026-11-13",
+  "columns": [
+    "XLV_Open",
+    "XLV_High",
+    "XLV_Low",
+    "XLV_Close",
+    "XLV_Adj Close",
+    "XLV_Volume",
+    "SPY_Open",
+    "SPY_High",
+    "SPY_Low",
+    "SPY_Close",
+    "SPY_Adj Close",
+    "SPY_Volume",
+    "XLV_Return",
+    "SPY_Return"
+  ],
+  "missing_values_total": 2,
+  "duplicate_dates": 0,
+  "anomalies": [],
+  "items_to_review": []
+}
