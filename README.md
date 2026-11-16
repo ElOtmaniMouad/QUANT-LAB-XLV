@@ -59,7 +59,9 @@ Les deux instruments étudiés seront :
 - XLV : actif principal du projet.
 - SPY : benchmark de comparaison.
 
-La période historique proposée commence en janvier 2018 et se termine à la dernière date complète disponible au moment de la collecte.
+La période d'étude commence en janvier 2018 et se termine à la dernière séance clôturée au moment de la collecte. La collecte démarre un an plus tôt (3 janvier 2017) uniquement pour amorcer les variables retardées et les fenêtres glissantes ; l'année 2017 n'est jamais utilisée pour l'apprentissage ni l'évaluation.
+
+Le livrable D02 (script de collecte, snapshot daté, dictionnaire, contrôles qualité, graphique de cohérence) est décrit dans [`README_D02.md`](README_D02.md) et [`data/README.md`](data/README.md).
 
 ### 5.2. Données récupérées
 

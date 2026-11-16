@@ -1,0 +1,24 @@
+# Paramètres gelés du livrable D02 — Données et audit (binôme B05 · XLV)
+# Toute modification de ce fichier doit être commitée et datée.
+asset: XLV            # ETF attribué : Health Care Select Sector SPDR Fund
+benchmark: SPY        # instrument de comparaison commun
+source: yfinance      # Yahoo Finance via la bibliothèque yfinance
+interval: 1d          # fréquence journalière
+start: "2017-01-03"   # un an de marge avant 2018 pour amorcer les variables retardées/roulantes
+end: null             # null = jusqu'à la dernière séance clôturée au moment de la collecte
+snapshot_dir: data/snapshots
+
+# Périodes figées AVANT tout entraînement (proposition commune du cahier, section 3)
+splits:
+  warmup:     {start: "2017-01-03", end: "2017-12-31"}   # amorçage uniquement, jamais évalué
+  train:      {start: "2018-01-01", end: "2022-12-31"}
+  validation: {start: "2023-01-01", end: "2024-12-31"}
+  test:       {start: "2025-01-01", end: "2026-10-30"}
+  paper:      {start: "2026-10-31", end: null}           # séances postérieures au test (paper trading, D08)
+
+# Seuils des contrôles qualité
+quality:
+  ohlc_tolerance: 1.0e-6        # tolérance absolue (USD) sur les inégalités OHLC
+  extreme_return_mad_k: 8.0     # |r - médiane| > k × MAD normalisé => rendement signalé
+  max_stale_run: 2              # nombre max. de clôtures identiques consécutives toléré
+  dividend_rel_tolerance: 0.05  # écart relatif toléré dividende déclaré / dividende implicite

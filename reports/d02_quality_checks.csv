@@ -1,0 +1,37 @@
+controle,ticker,statut,n,detail
+schema,*,OK,0,10 colonnes attendues présentes
+dates_dupliquees,XLV,OK,0,aucun doublon
+dates_triees,XLV,OK,0,ordre chronologique strict
+valeurs_manquantes,XLV,OK,0,aucune valeur manquante
+prix_positifs,XLV,OK,0,tous les prix > 0
+coherence_ohlc,XLV,OK,0,"low ≤ open, close ≤ high partout"
+volume,XLV,OK,0,volume > 0 à chaque séance
+seances_manquantes,XLV,OK,0,"2481 séances NYSE attendues, toutes présentes"
+seances_inattendues,XLV,OK,0,aucune ligne un week-end ou jour férié
+clotures_figees,XLV,OK,0,aucune clôture répétée plus de 2 fois de suite
+rendements_extremes,XLV,INFO,5,2020-03-12 (-7.76%); 2020-03-13 (+6.71%); 2020-03-16 (-10.38%); 2020-03-24 (+7.42%); 2020-03-26 (+6.43%)
+fractionnements,XLV,OK,0,aucun fractionnement sur la période
+ajustement_borne,XLV,OK,0,adj_close ≤ close partout ; facteur de 0.8496 à 1.0000
+ajustement_hors_dividende,XLV,OK,0,facteur d'ajustement constant hors dates ex-dividende
+dividendes_coherents,XLV,OK,0,"40 dividendes, tous retrouvés dans adj_close (écart max 0.02%)"
+dates_dupliquees,SPY,OK,0,aucun doublon
+dates_triees,SPY,OK,0,ordre chronologique strict
+valeurs_manquantes,SPY,OK,0,aucune valeur manquante
+prix_positifs,SPY,OK,0,tous les prix > 0
+coherence_ohlc,SPY,OK,0,"low ≤ open, close ≤ high partout"
+volume,SPY,OK,0,volume > 0 à chaque séance
+seances_manquantes,SPY,OK,0,"2481 séances NYSE attendues, toutes présentes"
+seances_inattendues,SPY,OK,0,aucune ligne un week-end ou jour férié
+clotures_figees,SPY,OK,0,aucune clôture répétée plus de 2 fois de suite
+rendements_extremes,SPY,INFO,9,2020-03-09 (-8.13%); 2020-03-12 (-10.06%); 2020-03-13 (+8.20%); 2020-03-16 (-11.59%); 2020-03-24 (+8.67%); 2020-04-06 (+6.50%); 2020-06-11 (-5.94%); 2025-04-04 (-6.03%); 2025-04-09 (+9.99%)
+fractionnements,SPY,OK,0,aucun fractionnement sur la période
+ajustement_borne,SPY,OK,0,adj_close ≤ close partout ; facteur de 0.8590 à 1.0000
+ajustement_hors_dividende,SPY,OK,0,facteur d'ajustement constant hors dates ex-dividende
+dividendes_coherents,SPY,OK,0,"39 dividendes, tous retrouvés dans adj_close (écart max 0.01%)"
+synchronisation,XLV/SPY,OK,0,2481 séances strictement communes
+couverture_warmup,XLV,OK,0,"251 séances, du 2017-01-03 au 2017-12-29"
+couverture_train,XLV,OK,0,"1259 séances, du 2018-01-02 au 2022-12-30"
+couverture_validation,XLV,OK,0,"502 séances, du 2023-01-03 au 2024-12-31"
+couverture_test,XLV,OK,0,"459 séances, du 2025-01-02 au 2026-10-30"
+couverture_paper,XLV,INFO,10,10 séances depuis le 2026-10-31 (période ouverte)
+correlation_benchmark,XLV/SPY,OK,0,corrélation des rendements journaliers = 0.752
