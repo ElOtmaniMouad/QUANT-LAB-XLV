@@ -63,6 +63,8 @@ La période d'étude commence en janvier 2018 et se termine à la dernière séa
 
 Le livrable D02 (script de collecte, snapshot daté, dictionnaire, contrôles qualité, graphique de cohérence) est décrit dans [`README_D02.md`](README_D02.md) et [`data/README.md`](data/README.md).
 
+Le livrable D03 (références simples, ARIMA, SARIMA, SARIMAX et diagnostics) est décrit dans [`README_D03.md`](README_D03.md). Son rapport généré est [`reports/d03_econometrie.md`](reports/d03_econometrie.md).
+
 ### 5.2. Données récupérées
 
 Les données journalières comprendront les variables suivantes :

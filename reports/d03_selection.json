@@ -1,0 +1,65 @@
+{
+  "frozen_at_utc": "2026-11-18T13:53:34Z",
+  "snapshot": "XLV_SPY_1d_20261116.csv",
+  "snapshot_sha256": "d80d6249f3dcebd09c6921b8cd0a8f45babbc02b48f1d6fd3a55666b108f69d3",
+  "selected_on": "validation 2023-2024 (RMSE walk-forward) ; ordres candidats issus du train",
+  "models": {
+    "ARIMA": {
+      "name": "ARIMA(1,0,3)",
+      "family": "ARIMA",
+      "label": "ARIMA(1,0,3)",
+      "order": [
+        1,
+        0,
+        3
+      ],
+      "seasonal_order": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "trend": "c",
+      "exog": false
+    },
+    "SARIMA": {
+      "name": "SARIMA(1, 0, 3)(0,0,1)_5",
+      "family": "SARIMA",
+      "label": "SARIMA(1,0,3)(0,0,1)_5",
+      "order": [
+        1,
+        0,
+        3
+      ],
+      "seasonal_order": [
+        0,
+        0,
+        1,
+        5
+      ],
+      "trend": "c",
+      "exog": false
+    },
+    "SARIMAX": {
+      "name": "SARIMAX(0,0,0)+SPY",
+      "family": "SARIMAX",
+      "label": "SARIMAX(0,0,0) + r_SPY(t-1)",
+      "order": [
+        0,
+        0,
+        0
+      ],
+      "seasonal_order": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "trend": "c",
+      "exog": true
+    }
+  },
+  "moving_average_window": 60,
+  "seasonality_relevant": true,
+  "refit_every": 21
+}
