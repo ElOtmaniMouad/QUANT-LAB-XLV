@@ -1,0 +1,51 @@
+{
+  "file": "XLV_SPY_1d_20261116.csv",
+  "sha256": "d80d6249f3dcebd09c6921b8cd0a8f45babbc02b48f1d6fd3a55666b108f69d3",
+  "acquired_at_utc": "2026-11-16T01:41:44Z",
+  "source": "Yahoo Finance (API publique non officielle)",
+  "library": "yfinance 1.2.0",
+  "call": "yfinance.Ticker(t).history(start, end, interval='1d', auto_adjust=False, actions=True, repair=False)",
+  "instruments": {
+    "XLV": "Health Care Select Sector SPDR Fund (NYSE Arca: XLV)",
+    "SPY": "SPDR S&P 500 ETF Trust (NYSE Arca: SPY)"
+  },
+  "frequency": "journalière (1 séance régulière = 1 ligne)",
+  "timezone": "America/New_York — 'date' = date de séance, clôture à 16:00 heure locale",
+  "currency": "USD",
+  "requested_start": "2017-01-03",
+  "requested_end": null,
+  "adjustment_convention": {
+    "open/high/low/close": "ajustés des fractionnements, non ajustés des dividendes",
+    "adj_close": "ajusté des fractionnements et des dividendes (rétro-ajustement Yahoo)",
+    "volume": "nombre de parts, ajusté des fractionnements"
+  },
+  "columns": [
+    "date",
+    "ticker",
+    "open",
+    "high",
+    "low",
+    "close",
+    "adj_close",
+    "volume",
+    "dividends",
+    "stock_splits"
+  ],
+  "rows": 4962,
+  "tickers": {
+    "SPY": {
+      "rows": 2481,
+      "first_date": "2017-01-03",
+      "last_date": "2026-11-13",
+      "n_dividends": 39,
+      "n_splits": 0
+    },
+    "XLV": {
+      "rows": 2481,
+      "first_date": "2017-01-03",
+      "last_date": "2026-11-13",
+      "n_dividends": 40,
+      "n_splits": 0
+    }
+  }
+}

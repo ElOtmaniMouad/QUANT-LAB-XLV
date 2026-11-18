@@ -3,4 +3,6 @@ __pycache__/
 venv/
 .env
 *.pyc
-# Garder les snapshots et rapports D02 si demandés par l'enseignant.
+.pytest_cache/
+.DS_Store
+# Les snapshots (data/snapshots/) et les rapports (reports/) sont versionnés : ce sont des preuves du livrable D02.

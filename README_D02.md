@@ -1,79 +1,46 @@
 # D02 — Données et audit
 
-## Prérequis
-Python 3.11+ et une connexion Internet pour la collecte Yahoo Finance.
+Binôme B05 · XLV (benchmark SPY). La documentation complète du livrable — provenance, dictionnaire,
+conventions d'ajustement, périodes figées, contrôles et résultats — est dans [`data/README.md`](data/README.md).
+
+## Pièces du livrable
+
+| Pièce demandée | Fichier |
+|---|---|
+| Script de collecte / mode import | [`src/data.py`](src/data.py) |
+| Snapshot daté | [`data/snapshots/XLV_SPY_1d_20261116.csv`](data/snapshots/XLV_SPY_1d_20261116.csv) + manifeste [`.json`](data/snapshots/XLV_SPY_1d_20261116.json) |
+| Dictionnaire | [`data/README.md`](data/README.md), section 3 |
+| Contrôles qualité | [`src/quality.py`](src/quality.py) → [`reports/d02_data_audit.md`](reports/d02_data_audit.md), [`reports/d02_quality_checks.csv`](reports/d02_quality_checks.csv) |
+| Graphique de cohérence | [`reports/figures/d02_coherence.png`](reports/figures/d02_coherence.png) |
+| Paramètres gelés | [`configs/data.yaml`](configs/data.yaml) |
+| Tests | [`tests/test_data.py`](tests/test_data.py) |
 
 ## Installation
-Depuis la racine du dépôt :
 
 ```bash
 python -m venv .venv
-```
-
-Windows PowerShell :
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Linux/macOS :
-```bash
-source .venv/bin/activate
-```
-
-Puis :
-```bash
+source .venv/bin/activate        # Windows PowerShell : .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-## 1. Collecter XLV et SPY
-
-La date de fin est exclusive. Exemple pour récupérer jusqu'au 14 novembre 2026 inclus :
+## Commandes
 
 ```bash
-python -m src.data --start 2018-01-01 --end 2026-11-15
+python -m src.data show      # mode DEMO : recharge le snapshot gelé et vérifie son SHA-256 (sans réseau)
+python -m src.quality        # relance les 36 contrôles, régénère le rapport et le graphique
+python -m pytest             # 46 tests, sans réseau
+python -m src.data collect   # (réseau) télécharge à nouveau et gèle un NOUVEAU snapshot daté du jour
 ```
 
-Le script crée :
-- `data/raw/xlv.csv` et `data/raw/spy.csv`
-- `data/processed/xlv_spy_daily.csv`
-- `data/snapshots/YYYY-MM-DD/xlv_spy_daily.csv`
-- `data/snapshots/YYYY-MM-DD/manifest.json`
+## Résultat
 
-## 2. Auditer les données
+Snapshot du 16/11/2026 : 2 481 séances par ticker, du 03/01/2017 au 13/11/2026.
+**33 contrôles OK · 3 INFO · 0 WARN · 0 FAIL — données utilisables.**
 
-```bash
-python -m src.audit
-```
-
-Le script produit :
-- `reports/quality_checks.csv`
-- `reports/quality_report.json`
-- `reports/coherence_xlv_spy.png`
-
-## 3. Recharger les données
-
-```python
-import pandas as pd
-
-df = pd.read_csv(
-    "data/processed/xlv_spy_daily.csv",
-    parse_dates=["Date"],
-    index_col="Date"
-)
-print(df.head())
-```
-
-## Contrôles réalisés
-Dates dupliquées ou non triées, valeurs manquantes, prix positifs, cohérence OHLC, volume non négatif, rendements extrêmes à examiner et dates communes XLV/SPY.
-
-Les anomalies sont signalées dans le rapport. Elles ne sont pas supprimées silencieusement : chaque correction éventuelle doit être justifiée et traçable.
+Les anomalies sont signalées dans le rapport et jamais supprimées silencieusement.
 
 ## Limite de la source
-Yahoo Finance via yfinance fournit les données disponibles par son service, qui peuvent être différées. Ce mécanisme d'actualisation ne doit pas être décrit comme un flux professionnel garanti en temps réel.
 
-## Livrables à conserver pour D02
-1. Scripts `src/data.py` et `src/audit.py`.
-2. Snapshot daté avec `manifest.json`.
-3. `data/data_dictionary.md`.
-4. Rapport de contrôles qualité.
-5. Graphique `coherence_xlv_spy.png`.
+Yahoo Finance via `yfinance` est une source gratuite, sans garantie, dont les données peuvent être
+différées ; ce n'est pas un flux professionnel en temps réel. Le snapshot gelé garantit que le travail
+reste reproductible même si la source change ou devient indisponible.
