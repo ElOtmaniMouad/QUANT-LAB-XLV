@@ -21,13 +21,103 @@ résultats du test, la stabilité et les diagnostics.
 | Figures | `reports/figures/d03_identification.png`, `d03_residus.png`, `d03_test_erreurs_cumulees.png`, `d03_stabilite.png` |
 | Tests | [`tests/test_models.py`](tests/test_models.py) |
 
-## Commandes
+## Commandes pour reproduire et vérifier le livrable
+
+Toutes les commandes se lancent depuis le dossier du projet, `QUANT-LAB-XLV/`. Aucune n'a besoin d'internet, sauf
+`git pull` et `pip install`.
+
+### 1. Récupérer la dernière version
+
+**Première fois sur cet ordinateur** (le dépôt n'est pas encore cloné) :
 
 ```bash
-pip install -r requirements.txt   # ajoute statsmodels et scipy
-python -m src.econometrics        # ~1 min, sans réseau, à partir du snapshot gelé D02
-python -m pytest                  # 68 tests (46 D02 + 22 D03), sans réseau
+git clone https://github.com/ElOtmaniMouad/QUANT-LAB-XLV.git
+cd QUANT-LAB-XLV
 ```
+
+**Les fois suivantes** (le dépôt est déjà cloné) :
+
+```bash
+cd QUANT-LAB-XLV
+git pull origin main
+```
+
+### 2. Préparer l'environnement Python
+
+**Première fois seulement** : créer l'environnement.
+
+```bash
+python3 -m venv .venv
+```
+
+**À chaque nouveau terminal** : l'activer. Le début de la ligne affiche alors `(.venv)`.
+
+```bash
+source .venv/bin/activate          # macOS / Linux
+.venv\Scripts\Activate.ps1         # Windows PowerShell
+```
+
+**Après chaque `git pull`** : installer les dépendances. D03 ajoute `statsmodels` et `scipy`.
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Vérifier que tout fonctionne
+
+```bash
+python -m pytest                   # résultat attendu : 68 passed (46 D02 + 22 D03), ~3 s
+```
+
+### 4. Relancer l'analyse D03
+
+```bash
+python -m src.econometrics         # ~1 min ; régénère reports/d03_* et reports/figures/d03_*
+```
+
+Résultat attendu à l'écran : `ARIMA retenu : ARIMA(3,0,2)`, puis `Rapport écrit : reports/d03_econometrie.md`.
+
+Pour vérifier la reproductibilité, lancez `git status`. Seuls `reports/d03_econometrie.md` et
+`reports/d03_selection.json` doivent apparaître comme modifiés, car ils contiennent la date et la durée de
+l'exécution. Tous les CSV de résultats doivent être identiques. Ensuite, remettez les fichiers dans leur état
+d'origine :
+
+```bash
+git checkout -- reports
+```
+
+### 5. Voir les graphiques et le rapport
+
+| Système | Ouvrir les 4 graphiques D03 | Ouvrir le rapport |
+|---|---|---|
+| macOS | `open reports/figures/d03_*.png` | `open reports/d03_econometrie.md` |
+| Windows PowerShell | `Get-ChildItem reports\figures\d03_*.png \| ForEach-Object { Invoke-Item $_ }` | `Invoke-Item reports\d03_econometrie.md` |
+| Linux | `xdg-open reports/figures/d03_stabilite.png` (un fichier à la fois) | `xdg-open reports/d03_econometrie.md` |
+
+Le rapport est aussi lisible directement sur GitHub : il suffit d'ouvrir `reports/d03_econometrie.md` dans le dépôt.
+
+| Graphique | Ce qu'il montre |
+|---|---|
+| `d03_test_erreurs_cumulees.png` | Avantage cumulé de chaque modèle sur la marche aléatoire pendant le test. Une courbe qui monte signifie que le modèle fait mieux. |
+| `d03_stabilite.png` | Ratio RMSE / marche aléatoire dans chaque sous-période T1–T4. Une barre sous 1 signifie que le modèle fait mieux. |
+| `d03_identification.png` | Log-prix, rendements, ACF et PACF sur le train (2018-2022). |
+| `d03_residus.png` | Résidus de l'ARIMA retenu : queues épaisses et effet ARCH. |
+
+### 6. Avant de commiter un nouveau travail
+
+```bash
+git config user.name                # doit afficher votre nom
+git config user.email               # doit afficher l'adresse liée à votre compte GitHub
+python -m pytest                    # tous les tests doivent passer
+```
+
+Si l'adresse n'est pas celle de votre compte GitHub, vos commits ne vous seront pas attribués. Pour la corriger :
+
+```bash
+git config user.email "votre-adresse@exemple.com"
+```
+
+Vous trouvez l'adresse de votre compte sur GitHub, dans Settings → Emails.
 
 ## Protocole
 
