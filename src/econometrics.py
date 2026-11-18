@@ -37,7 +37,7 @@ from src.evaluation import evaluate, evaluate_by_period
 from src.features import build_dataset, load_model_config, modelling_sample
 from src.models import baseline as B
 from src.models.arima import (
-    ArimaSpec, coefficient_table, fit, order_grid, residual_diagnostics, root_moduli,
+    ArimaSpec, admissibility, coefficient_table, fit, order_grid, residual_diagnostics, root_moduli,
     walk_forward,
 )
 
@@ -151,73 +151,95 @@ def run(verbose: bool = True) -> dict:
     # ---------------- 1. Identification (train) ----------------
     stat_tests = stationarity_tests(train)
     wd = weekday_effect(train)
-    grid = order_grid(train["y"], cfg["arima"]["max_p"], cfg["arima"]["max_q"], cfg["arima"]["trend"])
+    rules = cfg["selection"]
+    grid = order_grid(train["y"], cfg["arima"]["max_p"], cfg["arima"]["max_q"], cfg["arima"]["trend"], rules)
     grid.to_csv(REPORTS / "d03_order_grid.csv", index=False, float_format="%.4f")
-    log("Identification terminée (stationnarité, saisonnalité, grille AIC/BIC)")
+    log("Identification terminée (stationnarité, saisonnalité, grille AIC/BIC + diagnostics)")
 
-    # Candidats ARIMA : 3 meilleurs AIC + meilleur BIC, hors bruit blanc (p+q ≥ 1)
+    # Candidats ARIMA : hors bruit blanc (p+q ≥ 1), ADMISSIBLES d'abord (diagnostics des résidus
+    # et des racines sur le train), puis les n meilleurs AIC + le meilleur BIC.
     g = grid[(grid["p"] + grid["q"]) >= 1]
-    cand = list(g.nsmallest(3, "aic")[["p", "q"]].itertuples(index=False, name=None))
-    best_bic = tuple(g.nsmallest(1, "bic")[["p", "q"]].iloc[0])
+    g_ok = g[g["admissible"]]
+    if g_ok.empty:  # garde-fou : aucun ordre admissible -> on le signale et on garde la grille entière
+        log("ATTENTION : aucun ordre ARIMA admissible, sélection sur la grille complète")
+        g_ok = g
+    n_c = int(rules["n_candidates"])
+    cand = list(g_ok.nsmallest(n_c, "aic")[["p", "q"]].itertuples(index=False, name=None))
+    best_bic = tuple(g_ok.nsmallest(1, "bic")[["p", "q"]].iloc[0])
     if best_bic not in cand:
         cand.append(best_bic)
-    arima_cands = [ArimaSpec(f"ARIMA({p},0,{q})", order=(p, 0, q)) for p, q in cand]
+    arima_cands = [ArimaSpec(f"ARIMA({p},0,{q})", order=(int(p), 0, int(q))) for p, q in cand]
 
     # ---------------- 2. Sélection (validation) ----------------
     val_preds = B.all_baselines(ds["y"], cfg["baselines"]["moving_average_windows"]).loc[val.index]
     selection_rows = []
 
-    def _val(spec: ArimaSpec, family_note: str = "") -> float:
+    def _diag(spec: ArimaSpec) -> dict:
+        res = fit(spec, train["y"], train[["x_spy_lag1"]] if spec.exog else None)
+        return {"res": res, **admissibility(res, rules)}
+
+    def _val(spec: ArimaSpec, diag: dict, note: str = "") -> float:
         wf = walk_forward(spec, ds, val.index[0], val.index[-1], every)
         val_preds[spec.name] = wf.predictions
         r = float(np.sqrt(np.mean((val["y"] - wf.predictions) ** 2)))
-        selection_rows.append({"famille": spec.family, "candidat": spec.label,
-                               "RMSE_val_%": 100 * r, "non_convergences": wf.n_not_converged,
-                               "note": family_note})
+        selection_rows.append({
+            "famille": spec.family, "candidat": spec.label, "AIC_train": diag["res"].aic,
+            "LB_robuste_p": diag["LB_robuste_p"],
+            "racine_min": min(diag["ar_min_modulus"], diag["ma_min_modulus"]),
+            "compensation": diag["root_cancellation"], "admissible": diag["admissible"],
+            "motif": diag["motif"],
+            "RMSE_val_%": 100 * r, "note": note})
         return r
 
-    arima_scores = {s: _val(s, f"AIC train {grid.set_index(['p','q']).loc[s.order[::2], 'aic']:.1f}")
-                    for s in arima_cands}
-    arima_best = min(arima_scores, key=arima_scores.get)
+    def _pick(scores: dict, diags: dict) -> ArimaSpec:
+        """RMSE de validation minimale parmi les candidats admissibles (tous si aucun ne l'est)."""
+        ok = [s_ for s_ in scores if diags[s_]["admissible"]] or list(scores)
+        return min(ok, key=scores.get)
+
+    arima_diag = {s_: _diag(s_) for s_ in arima_cands}
+    arima_scores = {s_: _val(s_, arima_diag[s_]) for s_ in arima_cands}
+    arima_best = _pick(arima_scores, arima_diag)
     order = arima_best.order
     log(f"ARIMA retenu : {arima_best.label}")
 
     robust = covid_robustness(train, arima_best)
     robust.to_csv(REPORTS / "d03_robustesse_covid.csv", index=False, float_format="%.6f")
 
-    # SARIMA : ordre ARIMA retenu + composantes saisonnières (s = 5), choix par AIC train
+    # SARIMA : ordre ARIMA retenu + composantes saisonnières (s = 5) ; admissibles, puis AIC train
     s = int(cfg["sarima"]["season"])
-    base_fit = fit(arima_best, train["y"])
+    base_fit = arima_diag[arima_best]["res"]
     sarima_fits = []
+    from scipy import stats as _st
     for P, D, Q in cfg["sarima"]["candidates"]:
         spec = ArimaSpec(f"SARIMA{order}({P},{D},{Q})_{s}", order=order, seasonal_order=(P, D, Q, s))
-        res = fit(spec, train["y"])
-        lr = 2 * (res.llf - base_fit.llf)
-        k = P + Q
-        from scipy import stats as _st
-        sarima_fits.append({"spec": spec, "aic": res.aic, "bic": res.bic, "LR": lr,
-                            "LR_p": float(_st.chi2.sf(max(lr, 0.0), k)),
-                            "seasonal_pvalues": {n: float(res.pvalues[i]) for i, n in
-                                                 enumerate(res.model.param_names) if ".S." in n}})
+        d = _diag(spec)
+        lr = 2 * (d["res"].llf - base_fit.llf)
+        sarima_fits.append({"spec": spec, "diag": d, "aic": d["res"].aic, "bic": d["res"].bic, "LR": lr,
+                            "LR_p": float(_st.chi2.sf(max(lr, 0.0), P + Q))})
     sarima_tab = pd.DataFrame([{"candidat": f["spec"].label, "AIC_train": f["aic"], "BIC_train": f["bic"],
-                                "LR_vs_ARIMA": f["LR"], "LR_p": f["LR_p"]} for f in sarima_fits])
-    sarima_best_info = min(sarima_fits, key=lambda f: f["aic"])
+                                "LR_vs_ARIMA": f["LR"], "LR_p": f["LR_p"],
+                                "LB_robuste_p": f["diag"]["LB_robuste_p"],
+                                "admissible": f["diag"]["admissible"],
+                                "motif": f["diag"]["motif"]} for f in sarima_fits])
+    sarima_ok = [f for f in sarima_fits if f["diag"]["admissible"]] or sarima_fits
+    sarima_best_info = min(sarima_ok, key=lambda f: f["aic"])
     sarima_best = sarima_best_info["spec"]
     seasonal_relevant = (sarima_best_info["aic"] < base_fit.aic) and (sarima_best_info["LR_p"] < 0.05)
-    _val(sarima_best, "meilleur AIC train parmi les SARIMA")
+    _val(sarima_best, sarima_best_info["diag"], "meilleur AIC train parmi les SARIMA admissibles")
 
     # SARIMAX : r^SPY(t-1) avec la dynamique ARMA retenue ou en régression simple
     sx_cands = [ArimaSpec(f"SARIMAX{order}+SPY", order=order, exog=True),
                 ArimaSpec("SARIMAX(0,0,0)+SPY", order=(0, 0, 0), exog=True)]
-    sx_scores = {sp_: _val(sp_) for sp_ in sx_cands}
-    sarimax_best = min(sx_scores, key=sx_scores.get)
+    sx_diag = {s_: _diag(s_) for s_ in sx_cands}
+    sx_scores = {s_: _val(s_, sx_diag[s_]) for s_ in sx_cands}
+    sarimax_best = _pick(sx_scores, sx_diag)
 
     ma_windows = cfg["baselines"]["moving_average_windows"]
     ma_scores = {k: float(np.sqrt(np.mean((val["y"] - val_preds[f"ma{k}"]) ** 2))) for k in ma_windows}
     ma_best = min(ma_scores, key=ma_scores.get)
     for k, r in ma_scores.items():
         selection_rows.append({"famille": "Référence", "candidat": f"Moyenne mobile {k} séances",
-                               "RMSE_val_%": 100 * r, "non_convergences": 0, "note": ""})
+                               "RMSE_val_%": 100 * r, "note": "pas de résidus : pas de diagnostic"})
 
     val_metrics = evaluate(val, val_preds)
     val_metrics.to_csv(REPORTS / "d03_validation_metrics.csv", float_format="%.6f")
@@ -230,7 +252,9 @@ def run(verbose: bool = True) -> dict:
     selection = {
         "frozen_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "snapshot": snap.name, "snapshot_sha256": manifest["sha256"],
-        "selected_on": "validation 2023-2024 (RMSE walk-forward) ; ordres candidats issus du train",
+        "selected_on": "candidats admissibles sur le train (résidus et racines), "
+                       "puis RMSE walk-forward minimale sur la validation 2023-2024",
+        "admissibility_rules": dict(rules),
         "models": {k: v.to_dict() for k, v in final_specs.items()},
         "moving_average_window": int(ma_best),
         "seasonality_relevant": bool(seasonal_relevant),
@@ -303,7 +327,7 @@ def run(verbose: bool = True) -> dict:
     plot_stability(ratio.loc[test_preds.columns], names, FIGURES / "d03_stabilite.png")
 
     ctx = dict(snap=snap, manifest=manifest, train=train, val=val, test=test, stat_tests=stat_tests,
-               wd=wd, grid=grid, robust=robust, sel_tab=sel_tab, sarima_tab=sarima_tab, seasonal_relevant=seasonal_relevant,
+               wd=wd, grid=grid, robust=robust, rules=rules, sel_tab=sel_tab, sarima_tab=sarima_tab, seasonal_relevant=seasonal_relevant,
                final_specs=final_specs, ma_best=ma_best, val_metrics=val_metrics, test_metrics=test_metrics,
                sub=sub, stability=stability, diag=diag, coefs=coefs, roots=roots, names=names,
                refit_info=refit_info, cfg=cfg, every=every, elapsed=time.time() - t0, selection=selection)
@@ -452,7 +476,11 @@ def write_report(c: dict, path: Path) -> Path:
     n_sub = len(c["cfg"].subperiods)
     roots = pd.DataFrame(c["roots"]).T.rename_axis("modele")
     wd = c["wd"]
-    gsel = c["grid"].head(8)
+    grid = c["grid"]
+    rules = c["rules"]
+    gsel = grid.head(8)[["p", "q", "aic", "bic", "d_aic", "LB_robuste_p", "ar_min_modulus",
+                         "ma_min_modulus", "root_cancellation", "admissible", "motif"]]
+    n_ok = int(grid["admissible"].sum())
     da_zero = tm.loc["zero", "DA"]
 
     L = []
@@ -466,6 +494,11 @@ def write_report(c: dict, path: Path) -> Path:
       "(dividendes et fractionnements).")
     a("- Horizon : 1 séance. La prévision de r_t est calculée à la clôture de t-1 avec l'information "
       "disponible à cette clôture uniquement.")
+    a("- Variable externe de SARIMAX : x_t = r^SPY_{t-1}, le rendement de SPY de la **veille**. Pour prévoir "
+      "r_t à la clôture de t-1, on connaît déjà r^SPY_{t-1} : aucune valeur future de SPY n'est utilisée. "
+      "Le rendement de SPY du jour t, qui n'est connu qu'à la clôture de t, n'entre jamais dans le modèle. "
+      "En walk-forward, la prévision de la séance t ne lit que les lignes ≤ t de x et les lignes ≤ t-1 de y. "
+      "Les tests `test_dataset_alignment` et `test_walk_forward_no_lookahead` le vérifient.")
     a(f"- Échantillons : train {c['train'].index[0]:%Y-%m-%d} → {c['train'].index[-1]:%Y-%m-%d} "
       f"({len(c['train'])} séances) · validation {c['val'].index[0]:%Y-%m-%d} → {c['val'].index[-1]:%Y-%m-%d} "
       f"({len(c['val'])}) · test {c['test'].index[0]:%Y-%m-%d} → {c['test'].index[-1]:%Y-%m-%d} "
@@ -479,12 +512,18 @@ def write_report(c: dict, path: Path) -> Path:
     a(_md(c["stat_tests"], index=False))
     a("\nLe log-prix a une racine unitaire, le rendement est stationnaire : on modélise donc r_t "
       "avec d = 0, ce qui équivaut à un ARIMA(p, 1, q) sur le log-prix. La constante correspond à la dérive.\n")
-    a("### 2.2 Grille ARIMA(p, 0, q) — 8 meilleurs AIC\n")
+    a("### 2.2 Grille ARIMA(p, 0, q) et diagnostics — 8 meilleurs AIC\n")
+    a("Pour chaque ordre, on calcule aussi sur le train les diagnostics qui décident de l'admissibilité "
+      "(section 3) : test de Ljung-Box robuste à l'effet ARCH sur les résidus "
+      f"({rules['robust_lb_lags']} retards), plus petit module des racines AR et MA, et plus petite "
+      "distance entre une racine AR et une racine MA (compensation).\n")
     a(_md(gsel, index=False, floatfmt="{:.2f}"))
     a(f"\nGrille complète : `reports/d03_order_grid.csv`. Le bruit blanc ARIMA(0,0,0) a un ΔAIC de "
       f"{c['grid'].set_index(['p','q']).loc[(0,0),'d_aic']:.1f}. Les critères voient donc une dépendance "
-      "linéaire dans le train. Les meilleurs ordres ont des racines AR et MA proches l'une de l'autre "
-      "et proches du cercle unité (section 6.2) : ce sont des structures fragiles.\n")
+      f"linéaire dans le train. Seuls {n_ok} ordres sur {len(grid)} sont admissibles : "
+      + ", ".join(f"ARIMA({int(r.p)},0,{int(r.q)})" for r in grid[grid['admissible']].itertuples())
+      + ". Les autres gardent une autocorrélation dans leurs résidus, même avec le test robuste, "
+      "et plusieurs ont des racines AR et MA qui se compensent presque : leurs paramètres sont redondants.\n")
     a("### 2.3 D'où vient cette structure ? Robustesse à l'épisode Covid\n")
     a(_md(c["robust"], index=False))
     rb = c["robust"]
@@ -497,6 +536,15 @@ def write_report(c: dict, path: Path) -> Path:
       "sans 2020 : ce choix serait guidé par le résultat. Cette table sert seulement à interpréter "
       "les résultats hors échantillon.\n")
     a("### 2.4 Saisonnalité\n")
+    a(f"Choix de la période saisonnière s = {c['cfg']['sarima']['season']} :")
+    a("- les données sont des **séances de bourse**, pas des jours calendaires : une semaine compte 5 séances ;")
+    a("- s = 12 correspond à une saison annuelle en données **mensuelles**. En journalier, cela voudrait "
+      "dire un cycle de 12 séances, qui ne correspond à aucun phénomène de marché connu ;")
+    a("- un cycle mensuel (~21 séances) ou annuel (~252 séances) serait possible en théorie. Mais un SARIMA "
+      "avec s = 252 coûte très cher à estimer, et il n'existe pas de mécanisme connu qui produirait ces cycles "
+      "dans les rendements de XLV. Ces effets de calendrier (fin de mois, janvier…) se testent plus simplement "
+      "avec des indicatrices, si besoin dans D05 ;")
+    a("- le seul cycle plausible à priori est donc l'effet jour de la semaine, qu'on teste directement :\n")
     a(f"- Effet jour de la semaine (régression sur indicatrices, écarts-types robustes) : F = {wd['F']:.2f}, "
       f"p = {wd['p_value']:.3f}. Rendements moyens (%) : " +
       ", ".join(f"{k} {v:+.3f}" for k, v in wd["moyennes_%"].items()) + ".")
@@ -509,10 +557,34 @@ def write_report(c: dict, path: Path) -> Path:
       "hors échantillon, pour vérifier si ce résultat tient sur des données nouvelles.\n")
 
     a("## 3. Sélection sur la validation (2023-2024)\n")
-    a("Les ordres candidats viennent du train (les 3 meilleurs AIC et le meilleur BIC, sans le bruit blanc). "
-      "Pour chaque famille, on retient le candidat dont la RMSE walk-forward en validation est la plus faible. "
-      "Le test n'intervient dans aucun choix.\n")
+    a("Un modèle n'est pas choisi seulement parce que sa RMSE est faible. La règle comporte deux étapes, "
+      "fixées dans `configs/models.yaml` (section `selection`) :\n")
+    a(f"1. **Admissibilité, sur le train.** Un candidat est écarté si son estimation ne converge pas ; si une "
+      f"racine AR ou MA a un module inférieur à {rules['min_root_modulus']} ; si une racine AR et une racine "
+      f"MA sont à moins de {rules['max_root_cancellation']} l'une de l'autre (elles se compensent) ; ou si le "
+      f"Ljung-Box robuste ({rules['robust_lb_lags']} retards) rejette l'absence d'autocorrélation des résidus "
+      f"au seuil de {rules['alpha']}.")
+    a(f"2. **Précision, sur la validation.** Parmi les candidats admissibles (pour l'ARIMA : les "
+      f"{rules['n_candidates']} meilleurs AIC et le meilleur BIC, sans le bruit blanc), on retient celui dont "
+      "la RMSE walk-forward est la plus faible. Si aucun candidat d'une famille n'est admissible, on le "
+      "signale et on garde le meilleur RMSE.\n")
+    a("On utilise le Ljung-Box **robuste** (Lobato, Nankervis et Savin, 2001), pas le classique. Le test "
+      "classique suppose une variance constante. Sur des rendements avec un fort effet ARCH, il rejette "
+      "presque toujours, même quand les résidus ne sont pas autocorrélés : il éliminerait tous les modèles. "
+      "Le test classique reste affiché en section 6.3 pour comparaison. Le jeu de test 2025-2026 "
+      "n'intervient dans aucun choix.\n")
     a(_md(c["sel_tab"], index=False))
+    st = c["sel_tab"]
+    for fam in ECONOMETRIC:
+        f = st[st["famille"] == fam]
+        kept = f[f["retenu"]]
+        if kept.empty:
+            continue
+        better = f[(f["admissible"] == False) & (f["RMSE_val_%"] < kept["RMSE_val_%"].iloc[0])]  # noqa: E712
+        for _, r in better.iterrows():
+            a(f"\nÀ noter : {r['candidat']} a une RMSE de validation plus faible ({r['RMSE_val_%']:.4f} %) que le modèle "
+              f"retenu ({kept['RMSE_val_%'].iloc[0]:.4f} %), mais il est écarté par les diagnostics "
+              f"({r['motif']}). Cela montre que la règle ne choisit pas seulement sur la RMSE.")
     a("\nModèles retenus et gelés (`reports/d03_selection.json`, écrit avant toute prévision du test) :\n")
     for fam, spec in specs.items():
         a(f"- **{fam}** : {spec.label}")
@@ -559,11 +631,13 @@ def write_report(c: dict, path: Path) -> Path:
     a(_md(roots, floatfmt="{:.3f}"))
     a("\n### 6.3 Tests sur les résidus\n")
     a(_md(c["diag"], index=False))
-    a("\nLecture : les résidus ne sont pas gaussiens (queues épaisses) et ont un fort effet ARCH. "
-      "Le test de Ljung-Box sur les résidus rejette encore aux retards 10 et 20. Ce test suppose "
-      "une variance constante et rejette trop souvent en présence d'effet ARCH : ce rejet ne justifie "
-      "donc pas d'ajouter des retards ARMA. "
-      "Leur variance conditionnelle n'est pas constante. Les intervalles de prévision d'un ARIMA "
+    a("\nLecture :")
+    a("- **Autocorrélation** : le Ljung-Box classique rejette aux retards 10 et 20, mais le Ljung-Box robuste "
+      "ne rejette pas. La dynamique de la moyenne est donc bien captée. Le rejet du test classique vient de "
+      "l'hétéroscédasticité, pas d'une autocorrélation oubliée.")
+    a("- **Normalité** : Jarque-Bera rejette nettement. Les résidus ont des queues épaisses (voir le QQ-plot).")
+    a("- **Effet ARCH** : ARCH-LM et Ljung-Box sur les résidus² rejettent fortement. "
+      "La variance conditionnelle n'est pas constante. Les intervalles de prévision d'un ARIMA "
       "à variance constante sont donc mal calibrés. C'est le point de départ du livrable D04 "
       "(GARCH, VaR, ES). Voir `figures/d03_residus.png`.\n")
 
@@ -572,13 +646,18 @@ def write_report(c: dict, path: Path) -> Path:
     a("1. Les critères d'information du train trouvent une structure ARMA et un effet retardé de SPY. "
       "Ces deux résultats disparaissent quand on retire le krach de 2020 (section 2.3).")
     best_econ = min(ECONOMETRIC, key=lambda f: tm.loc[f, "RMSE_%"])
-    a(f"2. Hors échantillon, le meilleur modèle économétrique ({specs[best_econ].label}) a un ratio "
-      f"RMSE / marche aléatoire de {tm.loc[best_econ, 'ratio_RMSE_zero']:.4f}, soit un gain de "
-      f"{100 * (1 - tm.loc[best_econ, 'ratio_RMSE_zero']):.2f} %. Ce gain n'est pas significatif "
-      f"(Diebold-Mariano p = {tm.loc[best_econ, 'DM_p']:.2f}), et le modèle ne bat la marche aléatoire "
-      f"que dans {int(stab.loc[best_econ, 'sous_periodes_battant_zero'])} sous-périodes sur {n_sub}. "
-      "Le gain n'est donc pas stable. "
-      f"La moyenne historique fait presque aussi bien (ratio {tm.loc['hist_mean', 'ratio_RMSE_zero']:.4f}).")
+    r_best = tm.loc[best_econ, "ratio_RMSE_zero"]
+    n_win = int(stab.loc[best_econ, "sous_periodes_battant_zero"])
+    effet = (f"un gain de {100 * (1 - r_best):.2f} %" if r_best < 1 else
+             f"une perte de {100 * (r_best - 1):.2f} %")
+    a(f"2. Les modèles retenus passent les diagnostics : résidus non autocorrélés selon le test robuste, "
+      f"racines bien identifiées. Pourtant, hors échantillon, le meilleur d'entre eux "
+      f"({specs[best_econ].label}) a un ratio RMSE / marche aléatoire de {r_best:.4f}, soit {effet} "
+      f"(Diebold-Mariano p = {tm.loc[best_econ, 'DM_p']:.2f}). Il bat la marche aléatoire dans {n_win} "
+      f"sous-période(s) sur {n_sub}. Un bon ajustement sur le train ne garantit donc pas de bonnes "
+      "prévisions : la structure captée est celle de 2020, qui ne se reproduit pas. "
+      f"La moyenne historique, sans aucun paramètre dynamique, fait mieux (ratio "
+      f"{tm.loc['hist_mean', 'ratio_RMSE_zero']:.4f}).")
     a(f"3. La SARIMA n'améliore pas l'ARIMA hors échantillon (ratio {tm.loc['SARIMA', 'ratio_RMSE_zero']:.4f} "
       f"contre {tm.loc['ARIMA', 'ratio_RMSE_zero']:.4f}). La saisonnalité hebdomadaire détectée sur le "
       "train ne sert donc pas à prévoir.")

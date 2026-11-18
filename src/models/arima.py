@@ -96,14 +96,24 @@ def converged(res) -> bool:
 # --------------------------------------------------------------------------- #
 # Identification (train uniquement)
 # --------------------------------------------------------------------------- #
-def order_grid(y, max_p: int, max_q: int, trend: str = "c") -> pd.DataFrame:
-    """AIC / BIC de tous les ARIMA(p, 0, q), p ≤ max_p, q ≤ max_q."""
+def order_grid(y, max_p: int, max_q: int, trend: str = "c",
+               rules: Optional[dict] = None) -> pd.DataFrame:
+    """AIC / BIC de tous les ARIMA(p, 0, q), p ≤ max_p, q ≤ max_q.
+
+    Avec ``rules`` (section ``selection`` de la configuration), ajoute les
+    diagnostics et le verdict d'admissibilité de chaque ordre.
+    """
     rows = []
     for p, q in itertools.product(range(max_p + 1), range(max_q + 1)):
         spec = ArimaSpec(f"arima_{p}{q}", order=(p, 0, q), trend=trend)
         res = fit(spec, y)
-        rows.append({"p": p, "q": q, "aic": res.aic, "bic": res.bic,
-                     "llf": res.llf, "converged": converged(res)})
+        row = {"p": p, "q": q, "aic": res.aic, "bic": res.bic,
+               "llf": res.llf, "converged": converged(res)}
+        if rules is not None:
+            adm = admissibility(res, rules)
+            row.update({k: adm[k] for k in ("ar_min_modulus", "ma_min_modulus", "root_cancellation",
+                                            "LB_robuste_p", "admissible", "motif")})
+        rows.append(row)
     out = pd.DataFrame(rows)
     out["d_aic"] = out["aic"] - out["aic"].min()
     out["d_bic"] = out["bic"] - out["bic"].min()
@@ -169,6 +179,71 @@ def coefficient_table(res) -> pd.DataFrame:
     }, index=pd.Index(res.model.param_names, name="parametre"))
 
 
+def n_arma_params(res) -> int:
+    m = res.model
+    return int(m.k_ar_params + m.k_ma_params + m.k_seasonal_ar_params + m.k_seasonal_ma_params)
+
+
+def model_residuals(res) -> np.ndarray:
+    """Résidus hors période d'initialisation du filtre."""
+    return np.asarray(res.resid)[max(res.loglikelihood_burn, 1):]
+
+
+def robust_ljung_box(resid, lags: int, model_df: int = 0) -> tuple[float, float]:
+    """Test portmanteau robuste à l'hétéroscédasticité conditionnelle.
+
+    Q̃ = n Σ_{k=1..m} γ̂_k² / τ̂_k,  γ̂_k = (1/n) Σ e_t e_{t-k},  τ̂_k = (1/n) Σ (e_t e_{t-k})²
+    (Lobato, Nankervis & Savin, 2001). Sous H0 « pas d'autocorrélation », Q̃ suit
+    approximativement un χ²(m − model_df), y compris quand la variance varie dans le
+    temps (effet ARCH). Le Ljung-Box classique suppose une variance constante et
+    rejette trop souvent sur des rendements financiers.
+    """
+    e = np.asarray(resid, dtype=float)
+    e = e - e.mean()
+    n = len(e)
+    q = 0.0
+    for k in range(1, lags + 1):
+        prod = e[k:] * e[:-k]
+        gamma, tau = prod.sum() / n, (prod ** 2).sum() / n
+        q += n * gamma ** 2 / tau
+    dof = lags - model_df
+    return float(q), (float(stats.chi2.sf(q, dof)) if dof > 0 else float("nan"))
+
+
+def root_checks(res) -> dict:
+    """Plus petit module des racines AR / MA et plus petite distance racine AR – racine MA.
+
+    Une racine AR presque égale à une racine MA se simplifie : le modèle contient
+    alors des paramètres redondants, mal identifiés et instables hors échantillon.
+    """
+    ar, ma = np.atleast_1d(res.arroots), np.atleast_1d(res.maroots)
+    return {
+        "ar_min_modulus": float(np.min(np.abs(ar))) if ar.size else float("inf"),
+        "ma_min_modulus": float(np.min(np.abs(ma))) if ma.size else float("inf"),
+        "root_cancellation": float(min((abs(a - b) for a in ar for b in ma), default=float("inf"))),
+    }
+
+
+def admissibility(res, rules: dict) -> dict:
+    """Diagnostics d'un modèle estimé sur le train et verdict d'admissibilité.
+
+    ``rules`` = section ``selection`` de configs/models.yaml.
+    """
+    roots = root_checks(res)
+    _, p_rlb = robust_ljung_box(model_residuals(res), int(rules["robust_lb_lags"]), n_arma_params(res))
+    reasons = []
+    if not converged(res):
+        reasons.append("non convergé")
+    if min(roots["ar_min_modulus"], roots["ma_min_modulus"]) < float(rules["min_root_modulus"]):
+        reasons.append("racine sur le cercle unité")
+    if roots["root_cancellation"] < float(rules["max_root_cancellation"]):
+        reasons.append("racines AR/MA qui se compensent")
+    if not np.isnan(p_rlb) and p_rlb < float(rules["alpha"]):
+        reasons.append("résidus autocorrélés (LB robuste)")
+    return {**roots, "LB_robuste_p": p_rlb, "converged": converged(res),
+            "admissible": not reasons, "motif": "; ".join(reasons) or "—"}
+
+
 def residual_diagnostics(res, lb_lags=(5, 10, 20), arch_lags: int = 5,
                          alpha: float = 0.05) -> pd.DataFrame:
     """Tests sur les résidus standardisés d'un modèle estimé.
@@ -177,15 +252,17 @@ def residual_diagnostics(res, lb_lags=(5, 10, 20), arch_lags: int = 5,
       Ljung-Box (absence d'autocorrélation), Jarque-Bera (normalité),
       ARCH-LM (absence d'hétéroscédasticité conditionnelle).
     """
-    burn = max(res.loglikelihood_burn, 1)
-    resid = np.asarray(res.resid)[burn:]
-    n_ar = res.model.k_ar_params + res.model.k_seasonal_ar_params
-    n_ma = res.model.k_ma_params + res.model.k_seasonal_ma_params
+    resid = model_residuals(res)
+    k = n_arma_params(res)
     rows = []
-    lb = acorr_ljungbox(resid, lags=list(lb_lags), model_df=n_ar + n_ma)
+    lb = acorr_ljungbox(resid, lags=list(lb_lags), model_df=k)
     for lag, r in lb.iterrows():
         rows.append({"test": f"Ljung-Box (résidus, {lag} retards)", "statistique": r["lb_stat"],
                      "p_value": r["lb_pvalue"], "h0": "pas d'autocorrélation"})
+    for lag in lb_lags:
+        q, p = robust_ljung_box(resid, int(lag), k)
+        rows.append({"test": f"Ljung-Box robuste ARCH ({lag} retards)", "statistique": q,
+                     "p_value": p, "h0": "pas d'autocorrélation"})
     lb2 = acorr_ljungbox(resid ** 2, lags=[max(lb_lags)])
     rows.append({"test": f"Ljung-Box (résidus², {max(lb_lags)} retards)",
                  "statistique": float(lb2["lb_stat"].iloc[0]),
@@ -204,8 +281,5 @@ def residual_diagnostics(res, lb_lags=(5, 10, 20), arch_lags: int = 5,
 
 
 def root_moduli(res) -> dict:
-    """Plus petit module des racines AR / MA (> 1 ⇔ stationnaire / inversible)."""
-    def _min(roots):
-        roots = np.atleast_1d(roots)
-        return float(np.min(np.abs(roots))) if roots.size else float("inf")
-    return {"ar_min_modulus": _min(res.arroots), "ma_min_modulus": _min(res.maroots)}
+    """Plus petit module des racines AR / MA (> 1 ⇔ stationnaire / inversible) et compensation."""
+    return root_checks(res)

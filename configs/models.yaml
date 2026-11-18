@@ -21,11 +21,22 @@ arima:
   trend: c               # constante (dérive du log-prix)
 
 sarima:
-  season: 5              # cycle hebdomadaire (5 séances) : seule saisonnalité plausible en journalier
+  season: 5              # cycle hebdomadaire = 5 séances de bourse (pas 12, qui est mensuel/annuel en
+                         # données mensuelles ; 21 ou 252 séances : coût d'estimation élevé, aucun
+                         # mécanisme économique identifié pour XLV — justification dans le rapport)
   candidates:            # (P, D, Q) testés autour de l'ordre ARIMA retenu
     - [1, 0, 0]
     - [0, 0, 1]
     - [1, 0, 1]
+
+# Règle d'admissibilité appliquée AVANT de comparer les RMSE (revue du binôme, 18/11/2026) :
+# un candidat n'est comparé sur la validation que si ses résidus sur le train sont acceptables.
+selection:
+  n_candidates: 3                # nombre de candidats ARIMA admissibles (meilleurs AIC) envoyés en validation
+  robust_lb_lags: 10             # Ljung-Box robuste à l'hétéroscédasticité (Lobato-Nankervis-Savin)
+  alpha: 0.05                    # H0 « résidus non autocorrélés » ne doit pas être rejetée à ce seuil
+  min_root_modulus: 1.01         # racines AR/MA hors du cercle unité avec une marge numérique
+  max_root_cancellation: 0.05    # racine AR et racine MA plus proches que ce seuil : paramètres redondants
 
 walk_forward:
   window: expanding      # fenêtre croissante depuis le début du train (2018) : 2017 n'est jamais estimé

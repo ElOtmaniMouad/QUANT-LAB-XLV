@@ -1,19 +1,28 @@
 modele,test,statistique,p_value,h0,verdict
-"ARIMA(1,0,3)","Ljung-Box (résidus, 5 retards)",6.621640,0.010075,pas d'autocorrélation,H0 rejetée
-"ARIMA(1,0,3)","Ljung-Box (résidus, 10 retards)",90.393620,0.000000,pas d'autocorrélation,H0 rejetée
-"ARIMA(1,0,3)","Ljung-Box (résidus, 20 retards)",124.859335,0.000000,pas d'autocorrélation,H0 rejetée
-"ARIMA(1,0,3)","Ljung-Box (résidus², 20 retards)",1904.712981,0.000000,pas d'effet ARCH,H0 rejetée
-"ARIMA(1,0,3)",Jarque-Bera,3108.475310,0.000000,résidus gaussiens,H0 rejetée
-"ARIMA(1,0,3)",ARCH-LM (5 retards),399.239470,0.000000,pas d'effet ARCH,H0 rejetée
-"SARIMA(1,0,3)(0,0,1)_5","Ljung-Box (résidus, 5 retards)",1.924694,,pas d'autocorrélation,non applicable
-"SARIMA(1,0,3)(0,0,1)_5","Ljung-Box (résidus, 10 retards)",84.773457,0.000000,pas d'autocorrélation,H0 rejetée
-"SARIMA(1,0,3)(0,0,1)_5","Ljung-Box (résidus, 20 retards)",115.475189,0.000000,pas d'autocorrélation,H0 rejetée
-"SARIMA(1,0,3)(0,0,1)_5","Ljung-Box (résidus², 20 retards)",1918.947092,0.000000,pas d'effet ARCH,H0 rejetée
-"SARIMA(1,0,3)(0,0,1)_5",Jarque-Bera,2842.694547,0.000000,résidus gaussiens,H0 rejetée
-"SARIMA(1,0,3)(0,0,1)_5",ARCH-LM (5 retards),393.759108,0.000000,pas d'effet ARCH,H0 rejetée
-"SARIMAX(0,0,0) + r_SPY(t-1)","Ljung-Box (résidus, 5 retards)",21.420750,0.000674,pas d'autocorrélation,H0 rejetée
-"SARIMAX(0,0,0) + r_SPY(t-1)","Ljung-Box (résidus, 10 retards)",129.634454,0.000000,pas d'autocorrélation,H0 rejetée
-"SARIMAX(0,0,0) + r_SPY(t-1)","Ljung-Box (résidus, 20 retards)",173.268834,0.000000,pas d'autocorrélation,H0 rejetée
-"SARIMAX(0,0,0) + r_SPY(t-1)","Ljung-Box (résidus², 20 retards)",2051.405786,0.000000,pas d'effet ARCH,H0 rejetée
-"SARIMAX(0,0,0) + r_SPY(t-1)",Jarque-Bera,3640.542054,0.000000,résidus gaussiens,H0 rejetée
-"SARIMAX(0,0,0) + r_SPY(t-1)",ARCH-LM (5 retards),411.663117,0.000000,pas d'effet ARCH,H0 rejetée
+"ARIMA(3,0,2)","Ljung-Box (résidus, 5 retards)",4.894439,,pas d'autocorrélation,non applicable
+"ARIMA(3,0,2)","Ljung-Box (résidus, 10 retards)",17.544542,0.003575,pas d'autocorrélation,H0 rejetée
+"ARIMA(3,0,2)","Ljung-Box (résidus, 20 retards)",31.937622,0.006565,pas d'autocorrélation,H0 rejetée
+"ARIMA(3,0,2)",Ljung-Box robuste ARCH (5 retards),1.399465,,pas d'autocorrélation,non applicable
+"ARIMA(3,0,2)",Ljung-Box robuste ARCH (10 retards),5.679472,0.338667,pas d'autocorrélation,H0 non rejetée
+"ARIMA(3,0,2)",Ljung-Box robuste ARCH (20 retards),13.139117,0.591553,pas d'autocorrélation,H0 non rejetée
+"ARIMA(3,0,2)","Ljung-Box (résidus², 20 retards)",1838.533456,0.000000,pas d'effet ARCH,H0 rejetée
+"ARIMA(3,0,2)",Jarque-Bera,1375.257569,0.000000,résidus gaussiens,H0 rejetée
+"ARIMA(3,0,2)",ARCH-LM (5 retards),369.978709,0.000000,pas d'effet ARCH,H0 rejetée
+"SARIMA(3,0,2)(0,0,1)_5","Ljung-Box (résidus, 5 retards)",0.655016,,pas d'autocorrélation,non applicable
+"SARIMA(3,0,2)(0,0,1)_5","Ljung-Box (résidus, 10 retards)",13.136779,0.010626,pas d'autocorrélation,H0 rejetée
+"SARIMA(3,0,2)(0,0,1)_5","Ljung-Box (résidus, 20 retards)",26.249395,0.024060,pas d'autocorrélation,H0 rejetée
+"SARIMA(3,0,2)(0,0,1)_5",Ljung-Box robuste ARCH (5 retards),0.175390,,pas d'autocorrélation,non applicable
+"SARIMA(3,0,2)(0,0,1)_5",Ljung-Box robuste ARCH (10 retards),4.404926,0.353970,pas d'autocorrélation,H0 non rejetée
+"SARIMA(3,0,2)(0,0,1)_5",Ljung-Box robuste ARCH (20 retards),11.280209,0.663897,pas d'autocorrélation,H0 non rejetée
+"SARIMA(3,0,2)(0,0,1)_5","Ljung-Box (résidus², 20 retards)",1819.973360,0.000000,pas d'effet ARCH,H0 rejetée
+"SARIMA(3,0,2)(0,0,1)_5",Jarque-Bera,1349.318344,0.000000,résidus gaussiens,H0 rejetée
+"SARIMA(3,0,2)(0,0,1)_5",ARCH-LM (5 retards),369.216980,0.000000,pas d'effet ARCH,H0 rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)","Ljung-Box (résidus, 5 retards)",4.951981,,pas d'autocorrélation,non applicable
+"SARIMAX(3,0,2) + r_SPY(t-1)","Ljung-Box (résidus, 10 retards)",17.495379,0.003650,pas d'autocorrélation,H0 rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)","Ljung-Box (résidus, 20 retards)",31.922163,0.006597,pas d'autocorrélation,H0 rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)",Ljung-Box robuste ARCH (5 retards),1.415455,,pas d'autocorrélation,non applicable
+"SARIMAX(3,0,2) + r_SPY(t-1)",Ljung-Box robuste ARCH (10 retards),5.661623,0.340549,pas d'autocorrélation,H0 non rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)",Ljung-Box robuste ARCH (20 retards),13.160738,0.589884,pas d'autocorrélation,H0 non rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)","Ljung-Box (résidus², 20 retards)",1836.332848,0.000000,pas d'effet ARCH,H0 rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)",Jarque-Bera,1379.766195,0.000000,résidus gaussiens,H0 rejetée
+"SARIMAX(3,0,2) + r_SPY(t-1)",ARCH-LM (5 retards),370.412456,0.000000,pas d'effet ARCH,H0 rejetée

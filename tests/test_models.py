@@ -14,7 +14,10 @@ from src import evaluation as E
 from src.data import load_config, load_snapshot
 from src.features import build_dataset, load_model_config, modelling_sample
 from src.models import baseline as B
-from src.models.arima import ArimaSpec, fit, residual_diagnostics, walk_forward
+from src.models.arima import (
+    ArimaSpec, admissibility, fit, residual_diagnostics, robust_ljung_box, root_checks, walk_forward,
+)
+from statsmodels.stats.diagnostic import acorr_ljungbox
 
 
 # --------------------------------------------------------------------------- #
@@ -150,6 +153,7 @@ def test_residual_diagnostics_white_noise():
     df = synthetic_sample(1000, seed=5)
     d = residual_diagnostics(fit(ArimaSpec("w", (0, 0, 0)), df["y"]))
     assert set(d["verdict"]) <= {"H0 rejetée", "H0 non rejetée", "non applicable"}
+    assert d["test"].str.contains("robuste").sum() == 3
     jb = d[d["test"] == "Jarque-Bera"].iloc[0]
     assert jb["p_value"] > 0.01          # données gaussiennes simulées
 
@@ -185,3 +189,52 @@ def test_evaluate_table():
     assert tab.loc["zero", "ratio_RMSE_zero"] == pytest.approx(1.0)
     assert tab.loc["hist_mean", "R2_oos"] == pytest.approx(0.0)
     assert (tab["n"] == len(preds)).all()
+
+
+# --------------------------------------------------------------------------- #
+# Diagnostics utilisés pour la sélection (revue du binôme)
+# --------------------------------------------------------------------------- #
+def arch_noise(n: int, seed: int) -> np.ndarray:
+    """Bruit blanc NON autocorrélé mais à variance conditionnelle forte (ARCH(1))."""
+    rng = np.random.default_rng(seed)
+    e = np.zeros(n)
+    for t in range(1, n):
+        e[t] = np.sqrt(0.2 + 0.7 * e[t - 1] ** 2) * rng.standard_normal()
+    return e
+
+
+def test_robust_ljung_box_controls_size_under_arch():
+    """Sur un bruit ARCH, le Ljung-Box classique rejette trop souvent, pas la version robuste."""
+    rej_classic = rej_robust = 0
+    n_sim = 60
+    for seed in range(n_sim):
+        e = arch_noise(1500, seed)
+        rej_classic += acorr_ljungbox(e, lags=[10])["lb_pvalue"].iloc[0] < 0.05
+        rej_robust += robust_ljung_box(e, 10)[1] < 0.05
+    assert rej_robust / n_sim <= 0.15
+    assert rej_classic > rej_robust
+
+
+def test_robust_ljung_box_detects_autocorrelation():
+    y = synthetic_sample(1500, phi=0.3, seed=8)["y"].to_numpy()
+    assert robust_ljung_box(y, 10)[1] < 0.01
+
+
+def test_root_checks_detect_cancellation():
+    # ARMA(1,1) estimé sur un bruit blanc : la racine AR et la racine MA tendent à se compenser
+    df = synthetic_sample(1000, seed=9)
+    r = fit(ArimaSpec("c", (1, 0, 1)), df["y"])
+    rc = root_checks(r)
+    assert set(rc) == {"ar_min_modulus", "ma_min_modulus", "root_cancellation"}
+    assert rc["root_cancellation"] >= 0
+    # Modèle sans MA : aucune compensation possible
+    assert root_checks(fit(ArimaSpec("a", (1, 0, 0)), df["y"]))["root_cancellation"] == float("inf")
+
+
+def test_admissibility_rules():
+    rules = load_model_config()["selection"]
+    ok = admissibility(fit(ArimaSpec("a", (1, 0, 0)), synthetic_sample(1500, phi=0.4, seed=10)["y"]), rules)
+    assert ok["admissible"] and ok["motif"] == "—"
+    # bruit blanc fortement autocorrélé, ajusté sans dynamique : résidus autocorrélés -> écarté
+    bad = admissibility(fit(ArimaSpec("w", (0, 0, 0)), synthetic_sample(1500, phi=0.4, seed=10)["y"]), rules)
+    assert not bad["admissible"] and "autocorrélés" in bad["motif"]

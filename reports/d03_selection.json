@@ -1,17 +1,24 @@
 {
-  "frozen_at_utc": "2026-11-18T13:53:34Z",
+  "frozen_at_utc": "2026-11-18T14:50:10Z",
   "snapshot": "XLV_SPY_1d_20261116.csv",
   "snapshot_sha256": "d80d6249f3dcebd09c6921b8cd0a8f45babbc02b48f1d6fd3a55666b108f69d3",
-  "selected_on": "validation 2023-2024 (RMSE walk-forward) ; ordres candidats issus du train",
+  "selected_on": "candidats admissibles sur le train (résidus et racines), puis RMSE walk-forward minimale sur la validation 2023-2024",
+  "admissibility_rules": {
+    "n_candidates": 3,
+    "robust_lb_lags": 10,
+    "alpha": 0.05,
+    "min_root_modulus": 1.01,
+    "max_root_cancellation": 0.05
+  },
   "models": {
     "ARIMA": {
-      "name": "ARIMA(1,0,3)",
+      "name": "ARIMA(3,0,2)",
       "family": "ARIMA",
-      "label": "ARIMA(1,0,3)",
+      "label": "ARIMA(3,0,2)",
       "order": [
-        1,
+        3,
         0,
-        3
+        2
       ],
       "seasonal_order": [
         0,
@@ -23,13 +30,13 @@
       "exog": false
     },
     "SARIMA": {
-      "name": "SARIMA(1, 0, 3)(0,0,1)_5",
+      "name": "SARIMA(3, 0, 2)(0,0,1)_5",
       "family": "SARIMA",
-      "label": "SARIMA(1,0,3)(0,0,1)_5",
+      "label": "SARIMA(3,0,2)(0,0,1)_5",
       "order": [
-        1,
+        3,
         0,
-        3
+        2
       ],
       "seasonal_order": [
         0,
@@ -41,13 +48,13 @@
       "exog": false
     },
     "SARIMAX": {
-      "name": "SARIMAX(0,0,0)+SPY",
+      "name": "SARIMAX(3, 0, 2)+SPY",
       "family": "SARIMAX",
-      "label": "SARIMAX(0,0,0) + r_SPY(t-1)",
+      "label": "SARIMAX(3,0,2) + r_SPY(t-1)",
       "order": [
+        3,
         0,
-        0,
-        0
+        2
       ],
       "seasonal_order": [
         0,
