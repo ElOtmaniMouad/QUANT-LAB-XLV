@@ -1,0 +1,66 @@
+{
+  "frozen_at_utc": "2026-11-22T23:36:43Z",
+  "snapshot": "XLV_SPY_1d_20261116.csv",
+  "snapshot_sha256": "d80d6249f3dcebd09c6921b8cd0a8f45babbc02b48f1d6fd3a55666b108f69d3",
+  "selected_on": "modèles admissibles sur le train (convergence, persistance < 1, plus d'effet ARCH dans z_t), puis perte QLIKE minimale sur la validation 2023-2024",
+  "admissibility_rules": {
+    "max_persistence": 0.999,
+    "arch_lm_lags": 5,
+    "robust_lb_lags": 10,
+    "alpha": 0.05
+  },
+  "candidates": [
+    {
+      "name": "GARCH(1,1)-N",
+      "p": 1,
+      "o": 0,
+      "q": 1,
+      "dist": "normal",
+      "mean": "Constant"
+    },
+    {
+      "name": "GARCH(1,1)-t",
+      "p": 1,
+      "o": 0,
+      "q": 1,
+      "dist": "t",
+      "mean": "Constant"
+    },
+    {
+      "name": "GJR-GARCH(1,1)-t",
+      "p": 1,
+      "o": 1,
+      "q": 1,
+      "dist": "t",
+      "mean": "Constant"
+    }
+  ],
+  "admissible": {
+    "GARCH(1,1)-N": true,
+    "GARCH(1,1)-t": true,
+    "GJR-GARCH(1,1)-t": true
+  },
+  "validation_qlike": {
+    "GARCH(1,1)-N": 0.3414619213756868,
+    "GARCH(1,1)-t": 0.3383862924398819,
+    "GJR-GARCH(1,1)-t": 0.34893451330594116
+  },
+  "selected_model": {
+    "name": "GARCH(1,1)-t",
+    "p": 1,
+    "o": 0,
+    "q": 1,
+    "dist": "t",
+    "mean": "Constant"
+  },
+  "required_model": "GARCH(1,1)-N (toujours rapporté, exigé par le cahier)",
+  "baselines": {
+    "ewma_lambda": 0.94,
+    "hist_window": 250
+  },
+  "var_levels": [
+    0.95,
+    0.99
+  ],
+  "refit_every": 21
+}

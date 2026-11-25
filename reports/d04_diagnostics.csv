@@ -1,0 +1,16 @@
+modele,test,statistique,p_value,h0,verdict
+"GARCH(1,1)-N","Ljung-Box (z, 10 retards)",16.814813,0.078563,pas d'autocorrélation,H0 non rejetée
+"GARCH(1,1)-N","Ljung-Box (z², 10 retards)",5.619772,0.846133,plus d'effet ARCH,H0 non rejetée
+"GARCH(1,1)-N","ARCH-LM (z, 5 retards)",1.165593,0.948135,plus d'effet ARCH,H0 non rejetée
+"GARCH(1,1)-N",Jarque-Bera (z),253.055125,0.000000,z gaussien,H0 rejetée
+"GARCH(1,1)-N",Kolmogorov-Smirnov (loi du modèle),0.035730,0.078422,"z ~ N(0,1)",H0 non rejetée
+"GARCH(1,1)-t","Ljung-Box (z, 10 retards)",15.730059,0.107625,pas d'autocorrélation,H0 non rejetée
+"GARCH(1,1)-t","Ljung-Box (z², 10 retards)",5.587098,0.848679,plus d'effet ARCH,H0 non rejetée
+"GARCH(1,1)-t","ARCH-LM (z, 5 retards)",1.158522,0.948794,plus d'effet ARCH,H0 non rejetée
+"GARCH(1,1)-t",Jarque-Bera (z),262.555828,0.000000,z gaussien,H0 rejetée
+"GARCH(1,1)-t",Kolmogorov-Smirnov (loi du modèle),0.022301,0.550744,z ~ Student-t(6.4) standardisée,H0 non rejetée
+"GJR-GARCH(1,1)-t","Ljung-Box (z, 10 retards)",15.590550,0.111969,pas d'autocorrélation,H0 non rejetée
+"GJR-GARCH(1,1)-t","Ljung-Box (z², 10 retards)",4.402766,0.927354,plus d'effet ARCH,H0 non rejetée
+"GJR-GARCH(1,1)-t","ARCH-LM (z, 5 retards)",0.479302,0.992862,plus d'effet ARCH,H0 non rejetée
+"GJR-GARCH(1,1)-t",Jarque-Bera (z),272.026796,0.000000,z gaussien,H0 rejetée
+"GJR-GARCH(1,1)-t",Kolmogorov-Smirnov (loi du modèle),0.017718,0.817399,z ~ Student-t(6.9) standardisée,H0 non rejetée

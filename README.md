@@ -65,6 +65,8 @@ Le livrable D02 (script de collecte, snapshot daté, dictionnaire, contrôles qu
 
 Le livrable D03 (références simples, ARIMA, SARIMA, SARIMAX et diagnostics) est décrit dans [`README_D03.md`](README_D03.md). Son rapport généré est [`reports/d03_econometrie.md`](reports/d03_econometrie.md).
 
+Le livrable D04 (effet ARCH, GARCH(1,1), volatilité prévue, VaR, ES et backtests) est décrit dans [`README_D04.md`](README_D04.md). Son rapport généré est [`reports/d04_risque.md`](reports/d04_risque.md).
+
 ### 5.2. Données récupérées
 
 Les données journalières comprendront les variables suivantes :

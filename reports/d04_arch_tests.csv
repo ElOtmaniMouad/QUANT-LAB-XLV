@@ -1,0 +1,7 @@
+serie,test,statistique,p_value,h0,verdict
+rendement centré r_t − r̄,ARCH-LM (5 retards),454.750388,0.000000,pas d'effet ARCH,effet ARCH (H0 rejetée)
+rendement centré r_t − r̄,ARCH-LM (10 retards),499.609989,0.000000,pas d'effet ARCH,effet ARCH (H0 rejetée)
+rendement centré r_t − r̄,Ljung-Box sur le carré (10 retards),1868.825792,0.000000,pas d'effet ARCH,effet ARCH (H0 rejetée)
+"résidus ARIMA(3,0,2) (D03)",ARCH-LM (5 retards),369.978709,0.000000,pas d'effet ARCH,effet ARCH (H0 rejetée)
+"résidus ARIMA(3,0,2) (D03)",ARCH-LM (10 retards),398.245423,0.000000,pas d'effet ARCH,effet ARCH (H0 rejetée)
+"résidus ARIMA(3,0,2) (D03)",Ljung-Box sur le carré (10 retards),1594.964154,0.000000,pas d'effet ARCH,effet ARCH (H0 rejetée)
