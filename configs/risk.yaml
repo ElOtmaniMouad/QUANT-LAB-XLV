@@ -1,0 +1,50 @@
+# Paramètres gelés du livrable D04 — Module de risque (binôme B05 · XLV)
+# Les périodes (train / validation / test) viennent de configs/data.yaml et ne sont PAS redéfinies ici.
+# Les sous-périodes T1–T4 du test viennent de configs/models.yaml (même découpage qu'en D03).
+# Toute modification de ce fichier doit être commitée et datée.
+
+# Snapshot figé utilisé par D04 : le même que D02/D03 (reports/d03_selection.json).
+# Un snapshot plus récent dans data/snapshots/ n'est PAS pris en compte : les résultats restent reproductibles.
+snapshot: XLV_SPY_1d_20261116.csv
+
+target:
+  ticker: XLV
+  kind: log_return       # r_t = 100 · ln(P_t / P_{t-1}), en %, P = prix ajusté (dividendes inclus)
+  horizon: 1             # prévision de la distribution de r_t à la clôture de t-1
+
+# Modèles GARCH comparés (moyenne constante). GARCH(1,1) gaussien = modèle exigé par le cahier.
+garch_candidates:
+  - {name: "GARCH(1,1)-N",     o: 0, dist: normal}
+  - {name: "GARCH(1,1)-t",     o: 0, dist: t}
+  - {name: "GJR-GARCH(1,1)-t", o: 1, dist: t}
+
+# Admissibilité d'un modèle GARCH, vérifiée sur le TRAIN avant toute comparaison
+admissibility:
+  max_persistence: 0.999       # α + β + γ/2 < 1 : variance inconditionnelle finie
+  arch_lm_lags: 5              # ARCH-LM sur les résidus standardisés z_t
+  robust_lb_lags: 10           # Ljung-Box (z_t²)
+  alpha: 0.05                  # H0 « plus d'effet ARCH dans z_t » ne doit pas être rejetée
+
+# Références simples de risque (aucun paramètre choisi sur les données : conventions de marché)
+baselines:
+  ewma_lambda: 0.94            # RiskMetrics (J.P. Morgan, 1996), données journalières
+  hist_window: 250             # simulation historique sur ~1 an de bourse (convention Bâle)
+  # volatilité « constante » : écart-type de tous les rendements passés (fenêtre croissante)
+
+# Mesures de risque, position LONGUE (perte = −rendement)
+risk_measures:
+  var_levels: [0.95, 0.99]     # niveaux de confiance de la VaR et de l'ES à 1 séance
+  capital_usd: 100000          # capital fictif du cahier, pour exprimer la VaR en USD
+
+# Sélection sur la VALIDATION : perte QLIKE de la variance prévue (robuste au bruit du proxy r²)
+selection:
+  loss: qlike
+
+walk_forward:
+  window: expanding            # depuis le début du train (2018) ; 2017 amorce uniquement EWMA et HS
+  refit_every: 21              # paramètres ré-estimés toutes les 21 séances, variance filtrée chaque jour
+
+# Contrainte de position proposée pour D06 (non utilisée pour évaluer les modèles de risque)
+position_limit:
+  max_var99_pct_capital: 2.0   # exposition max telle que VaR99 de la position ≤ 2 % du capital
+  max_exposure: 1.0            # ni levier ni vente à découvert
