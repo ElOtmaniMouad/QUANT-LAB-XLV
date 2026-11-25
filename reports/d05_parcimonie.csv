@@ -1,0 +1,7 @@
+modele,candidat,parametres,secondes_test,refits,ms_par_refit
+Ridge,Ridge(alpha=10000),21,0.012080207999929371,22,0.5491003636331532
+RandomForest,"RandomForest(max_depth=3, min_samples_leaf=20)",1492,3.2739723769999927,22,148.8169262272724
+GradientBoosting,"GradientBoosting(n_estimators=50, max_depth=2)",256,3.2280325429999692,22,146.72875195454407
+MLP,"MLP(hidden=8, weight_decay=0.01)",177,12.668804750000021,22,575.8547613636373
+ARIMA,"ARIMA(3,0,2)",7,,22,
+SARIMAX,"SARIMAX(3,0,2) + r_SPY(t-1)",8,,22,
