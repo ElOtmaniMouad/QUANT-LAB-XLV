@@ -1,0 +1,65 @@
+# Paramètres gelés du livrable D05 — Machine Learning et Deep Learning (binôme B05 · XLV)
+# Les périodes (train / validation / test) viennent de configs/data.yaml, la cible et les sous-périodes
+# T1–T4 de configs/models.yaml : elles ne sont PAS redéfinies ici (même protocole que D03).
+# Toute modification de ce fichier doit être commitée et datée.
+
+# Snapshot figé : le même que D02/D03/D04 (reports/d03_selection.json). Un snapshot plus récent dans
+# data/snapshots/ n'est PAS pris en compte : les résultats restent reproductibles.
+snapshot: XLV_SPY_1d_20261116.csv
+
+seed: 20261125            # graine unique ; chaque modèle en dérive ses propres graines
+
+# Cible (identique à D03) : r_t = ln(P_t / P_{t-1}), prévu à la clôture de t-1, horizon 1 séance.
+# Régression plutôt que classification : même cible, mêmes métriques (RMSE, DM) que D03, donc
+# comparaison directe avec les références et ARIMA. La prévision de r_t donne aussi le signe (D06).
+
+features:
+  xlv_return_lags: 5      # r_{t-1} … r_{t-5}
+  xlv_mean_windows: [5, 20, 60]
+  xlv_vol_windows: [5, 20, 60]
+  spy_return_lags: 3      # r^SPY_{t-1} … r^SPY_{t-3}
+  spy_vol_window: 20
+  relative_windows: [5, 20]   # somme de (r^XLV − r^SPY) sur k séances
+  trend_ma_windows: [50, 200] # ln(P / moyenne mobile des prix) : tendance de moyen/long terme
+  volume_window: 20           # ln(volume / volume moyen 20 séances)
+  # Toutes les variables d'une ligne t sont calculées avec l'information disponible à la CLÔTURE DE t-1.
+
+# Références communes (mêmes modèles qu'en D03, ré-estimés ici sur le même snapshot)
+references:
+  baselines: [zero, hist_mean, ma60]
+  d03_models:
+    ARIMA:   {order: [3, 0, 2], exog: false}
+    SARIMAX: {order: [3, 0, 2], exog: true}
+
+# Protocole d'estimation (identique à D03)
+walk_forward:
+  window: expanding       # depuis le début du train (2018) ; 2017 n'est jamais estimé
+  refit_every: 21         # ré-estimation toutes les 21 séances, sur les seules données antérieures au bloc
+
+# Hyperparamètres : grille LIMITÉE, évaluée UNIQUEMENT sur la validation 2023-2024 (RMSE walk-forward).
+# Le choix est gelé dans reports/d05_selection.json AVANT la première prévision du test.
+models:
+  Ridge:
+    alpha: [1, 10, 100, 1000, 10000]      # variables standardisées ; alpha grand => proche de la moyenne
+  RandomForest:
+    n_estimators: 200
+    max_depth: [3, 5]
+    min_samples_leaf: [20, 50]
+    max_features: 0.5
+  GradientBoosting:
+    n_estimators: [50, 150]
+    learning_rate: 0.03
+    max_depth: [2, 3]
+    subsample: 0.7
+    min_samples_leaf: 20
+  MLP:                                     # PyTorch : réseau compact, moyenne de plusieurs graines
+    hidden: [8, 16]                        # une seule couche cachée (tanh)
+    weight_decay: [0.001, 0.01]
+    dropout: 0.2
+    epochs: 60
+    batch_size: 64
+    lr: 0.003
+    n_seeds: 3
+
+# Seuil de signification des tests (Diebold-Mariano) ; 4 modèles ML comparés : correction de Holm appliquée
+alpha: 0.05

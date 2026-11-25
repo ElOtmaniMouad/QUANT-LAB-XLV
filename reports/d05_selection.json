@@ -1,0 +1,98 @@
+{
+  "frozen_at_utc": "2026-11-25T15:18:28Z",
+  "snapshot": "XLV_SPY_1d_20261116.csv",
+  "snapshot_sha256": "d80d6249f3dcebd09c6921b8cd0a8f45babbc02b48f1d6fd3a55666b108f69d3",
+  "selected_on": "RMSE walk-forward minimale sur la validation 2023-2024, par famille de modèles ; aucune donnée du test n'a été utilisée avant cette écriture",
+  "seed": 20261125,
+  "refit_every": 21,
+  "features": [
+    "xlv_r_lag1",
+    "xlv_r_lag2",
+    "xlv_r_lag3",
+    "xlv_r_lag4",
+    "xlv_r_lag5",
+    "xlv_moy5",
+    "xlv_moy20",
+    "xlv_moy60",
+    "xlv_vol5",
+    "xlv_vol20",
+    "xlv_vol60",
+    "spy_r_lag1",
+    "spy_r_lag2",
+    "spy_r_lag3",
+    "spy_vol20",
+    "force_rel5",
+    "force_rel20",
+    "tendance_ma50",
+    "tendance_ma200",
+    "volume_rel20"
+  ],
+  "models": {
+    "Ridge": {
+      "family": "Ridge",
+      "label": "Ridge(alpha=10000)",
+      "params": {
+        "alpha": 10000
+      },
+      "varied": [
+        "alpha"
+      ],
+      "RMSE_val_pct": 0.7097720127149193,
+      "bord_de_grille": [
+        "alpha"
+      ]
+    },
+    "RandomForest": {
+      "family": "RandomForest",
+      "label": "RandomForest(max_depth=3, min_samples_leaf=20)",
+      "params": {
+        "max_depth": 3,
+        "max_features": 0.5,
+        "min_samples_leaf": 20,
+        "n_estimators": 200
+      },
+      "varied": [
+        "max_depth",
+        "min_samples_leaf"
+      ],
+      "RMSE_val_pct": 0.7115051430113405,
+      "bord_de_grille": []
+    },
+    "GradientBoosting": {
+      "family": "GradientBoosting",
+      "label": "GradientBoosting(n_estimators=50, max_depth=2)",
+      "params": {
+        "learning_rate": 0.03,
+        "max_depth": 2,
+        "min_samples_leaf": 20,
+        "n_estimators": 50,
+        "subsample": 0.7
+      },
+      "varied": [
+        "n_estimators",
+        "max_depth"
+      ],
+      "RMSE_val_pct": 0.7105547394938209,
+      "bord_de_grille": []
+    },
+    "MLP": {
+      "family": "MLP",
+      "label": "MLP(hidden=8, weight_decay=0.01)",
+      "params": {
+        "batch_size": 64,
+        "dropout": 0.2,
+        "epochs": 60,
+        "hidden": 8,
+        "lr": 0.003,
+        "n_seeds": 3,
+        "weight_decay": 0.01
+      },
+      "varied": [
+        "hidden",
+        "weight_decay"
+      ],
+      "RMSE_val_pct": 0.7239015228983743,
+      "bord_de_grille": []
+    }
+  }
+}

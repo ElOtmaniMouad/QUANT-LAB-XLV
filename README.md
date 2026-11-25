@@ -441,7 +441,7 @@ Le projet sera réalisé progressivement selon les tâches et les dates prévisi
 - D02 : données récupérées, nettoyées et documentées.
 - D03 : résultats des modèles économétriques.
 - D04 : rapport d'analyse du risque et de la volatilité.
-- D05 : résultats des modèles de Machine Learning et Deep Learning.
+- D05 : résultats des modèles de Machine Learning et Deep Learning. Voir [`README_D05.md`](README_D05.md) et le rapport généré [`reports/d05_ml_dl.md`](reports/d05_ml_dl.md).
 - D06 : stratégie de trading et résultats du Backtesting.
 - D07 : application Streamlit fonctionnelle.
 - D08 : preuves des séances de Paper Trading.

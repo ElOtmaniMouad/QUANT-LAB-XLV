@@ -1,0 +1,18 @@
+famille,candidat,RMSE_val_%,secondes,refits,retenu,bord_de_grille
+Ridge,Ridge(alpha=1),0.741211,0.012241,24,False,
+Ridge,Ridge(alpha=10),0.740613,0.011790,24,False,
+Ridge,Ridge(alpha=100),0.736195,0.011972,24,False,
+Ridge,Ridge(alpha=1000),0.722227,0.011716,24,False,
+Ridge,Ridge(alpha=10000),0.709772,0.011676,24,True,alpha
+RandomForest,"RandomForest(max_depth=3, min_samples_leaf=20)",0.711505,2.754446,24,True,
+RandomForest,"RandomForest(max_depth=3, min_samples_leaf=50)",0.718036,2.559848,24,False,
+RandomForest,"RandomForest(max_depth=5, min_samples_leaf=20)",0.714451,4.057925,24,False,
+RandomForest,"RandomForest(max_depth=5, min_samples_leaf=50)",0.718614,3.446265,24,False,
+GradientBoosting,"GradientBoosting(n_estimators=50, max_depth=2)",0.710555,2.624868,24,True,
+GradientBoosting,"GradientBoosting(n_estimators=50, max_depth=3)",0.714177,3.779756,24,False,
+GradientBoosting,"GradientBoosting(n_estimators=150, max_depth=2)",0.718555,7.872818,24,False,
+GradientBoosting,"GradientBoosting(n_estimators=150, max_depth=3)",0.718774,11.300846,24,False,
+MLP,"MLP(hidden=8, weight_decay=0.001)",0.724104,10.919169,24,False,
+MLP,"MLP(hidden=8, weight_decay=0.01)",0.723902,10.493471,24,True,
+MLP,"MLP(hidden=16, weight_decay=0.001)",0.724629,11.694235,24,False,
+MLP,"MLP(hidden=16, weight_decay=0.01)",0.724584,11.703754,24,False,
