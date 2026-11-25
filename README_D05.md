@@ -75,7 +75,7 @@ la prévision donne la direction pour la règle de décision de D06.
 | ARIMA(3,0,2) de D03 | 1,0930 | 1,014 | 51,4 % | 1,00 |
 | Ridge (α = 10 000) | 1,0748 | 0,997 | 55,8 % | 1,00 |
 | Forêt aléatoire | 1,0791 | 1,001 | 51,9 % | 1,00 |
-| Gradient boosting | 1,0772 | 1,000 | 52,3 % | 1,00 |
+| Gradient boosting | 1,0773 | 1,000 | 52,3 % | 1,00 |
 | MLP (PyTorch) | 1,0804 | 1,003 | 52,7 % | 1,00 |
 
 - **Aucun modèle ML/DL ne bat significativement la marche aléatoire** en erreur de prévision. Les écarts de RMSE sont de
